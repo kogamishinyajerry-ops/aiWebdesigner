@@ -40,14 +40,15 @@ async def lifespan(app: FastAPI):
     logger.info("✅ Redis cache initialized")
 
     # Initialize AI models
-    # from models.model_loader import load_models
-    # await load_models()
+    from services import model_manager
+    await model_manager.load_all_models()
     logger.info("✅ AI models loaded")
 
     yield
 
     logger.info("🛑 Shutting down AI Designer Backend...")
     await cache.disconnect()
+    await model_manager.unload_all()
 
 
 # Create FastAPI app

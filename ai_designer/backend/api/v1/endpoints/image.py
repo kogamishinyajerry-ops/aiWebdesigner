@@ -6,10 +6,11 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import Field
 from typing import Optional
 import uuid
+import base64
 from datetime import datetime
 from loguru import logger
 
-from services.image_generator import ImageGenerator
+from services import image_service
 from schemas.image import (
     ImageGenerationRequest,
     ImageGenerationResponse,
@@ -19,22 +20,11 @@ from core.config import settings
 
 router = APIRouter()
 
-# Initialize image generator
-image_generator = ImageGenerator()
-
-
-class HeroBannerRequest:
-    """Hero banner generation request"""
-    title: str = Field(..., description="Title text for banner")
-    subtitle: Optional[str] = Field(None, description="Subtitle text")
-    style: str = Field(default="modern", description="Style preset")
-    dimensions: str = Field(default="1920x1080", description="Dimensions (WxH)")
-
 
 @router.post("/generate", response_model=ImageGenerationResponse)
 async def generate_image(request: ImageGenerationRequest, http_request: Request):
     """
-    Generate an image using FLUX model
+    Generate an image using AI model
     """
     try:
         request_id = getattr(http_request.state, "request_id", "unknown")
@@ -42,33 +32,31 @@ async def generate_image(request: ImageGenerationRequest, http_request: Request)
 
         logger.info(f"[{request_id}] Generating image: {request.prompt}")
 
-        # Generate image
-        images = await image_generator.generate(
+        # Generate image using service
+        result = image_service.generate_hero_banner(
             prompt=request.prompt,
             style=request.style,
-            width=request.width,
-            height=request.height,
-            num_images=1,
+            size=request.size,
+            negative_prompt=request.negative_prompt,
+            guidance_scale=request.guidance_scale,
+            num_inference_steps=request.num_steps,
             seed=request.seed
         )
 
         generation_time = (datetime.now() - start_time).total_seconds()
 
-        # Save image and get URL
-        image_url = None
-        if images:
-            image_id = str(uuid.uuid4())
-            image_url = await image_generator.save_image(images[0], image_id)
+        # Convert image to base64 for response
+        image_base64 = base64.b64encode(result["image_data"]).decode("utf-8")
 
-        logger.info(f"[{request_id}] Image generated successfully")
+        logger.info(f"[{request_id}] Image generated successfully in {generation_time:.2f}s")
 
         return ImageGenerationResponse(
-            success=bool(images),
-            image_url=image_url,
+            success=True,
+            image_url=f"data:image/png;base64,{image_base64}",
             generation_id=str(uuid.uuid4()),
             generation_time=generation_time,
             prompt=request.prompt,
-            dimensions={"width": request.width, "height": request.height},
+            dimensions={"width": result["width"], "height": result["height"]},
             style=request.style,
             seed=request.seed,
             request_id=request_id
@@ -77,6 +65,112 @@ async def generate_image(request: ImageGenerationRequest, http_request: Request)
     except Exception as e:
         request_id = getattr(http_request.state, "request_id", "unknown")
         logger.error(f"[{request_id}] Image generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/icons")
+async def generate_icons(
+    concept: str = Field(..., description="Icon concept (e.g., navigation, social)"),
+    style: str = Field(default="outline", description="Icon style"),
+    count: int = Field(default=4, ge=1, le=10, description="Number of icons"),
+    size: str = Field(default="icon", description="Icon size preset"),
+    http_request: Request = None
+):
+    """
+    Generate icon set
+    """
+    try:
+        request_id = getattr(http_request.state, "request_id", "unknown")
+        start_time = datetime.now()
+
+        logger.info(f"[{request_id}] Generating {count} icons for: {concept}")
+
+        # Generate icons
+        icons = image_service.generate_icon(
+            concept=concept,
+            style=style,
+            count=count,
+            size=size
+        )
+
+        generation_time = (datetime.now() - start_time).total_seconds()
+
+        # Convert to base64
+        icon_data = []
+        for icon in icons:
+            icon_base64 = base64.b64encode(icon["image_data"]).decode("utf-8")
+            icon_data.append({
+                "concept": icon["concept"],
+                "style": icon["style"],
+                "variant": icon["variant"],
+                "data_url": f"data:image/png;base64,{icon_base64}",
+                "width": icon["width"],
+                "height": icon["height"]
+            })
+
+        logger.info(f"[{request_id}] Generated {len(icons)} icons in {generation_time:.2f}s")
+
+        return {
+            "success": True,
+            "icons": icon_data,
+            "generation_time": generation_time,
+            "request_id": request_id
+        }
+
+    except Exception as e:
+        request_id = getattr(http_request.state, "request_id", "unknown")
+        logger.error(f"[{request_id}] Icon generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/background")
+async def generate_background(
+    style: str = Field(default="gradient", description="Background style"),
+    colors: Optional[str] = Field(None, description="Comma-separated colors"),
+    complexity: str = Field(default="medium", description="Complexity level"),
+    size: str = Field(default="hero_medium", description="Size preset"),
+    http_request: Request = None
+):
+    """
+    Generate background texture
+    """
+    try:
+        request_id = getattr(http_request.state, "request_id", "unknown")
+        start_time = datetime.now()
+
+        color_list = colors.split(",") if colors else None
+
+        logger.info(f"[{request_id}] Generating {style} background")
+
+        # Generate background
+        result = image_service.generate_background(
+            style=style,
+            colors=color_list,
+            complexity=complexity,
+            size=size
+        )
+
+        generation_time = (datetime.now() - start_time).total_seconds()
+
+        # Convert to base64
+        image_base64 = base64.b64encode(result["image_data"]).decode("utf-8")
+
+        logger.info(f"[{request_id}] Background generated in {generation_time:.2f}s")
+
+        return {
+            "success": True,
+            "image_url": f"data:image/png;base64,{image_base64}",
+            "style": style,
+            "complexity": complexity,
+            "width": result["width"],
+            "height": result["height"],
+            "generation_time": generation_time,
+            "request_id": request_id
+        }
+
+    except Exception as e:
+        request_id = getattr(http_request.state, "request_id", "unknown")
+        logger.error(f"[{request_id}] Background generation failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
