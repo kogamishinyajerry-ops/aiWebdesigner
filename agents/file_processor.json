@@ -1,0 +1,17 @@
+{
+  "name": "file_processor",
+  "description": "文件处理代理，用于批量处理、转换和操作文件",
+  "version": "1.0.0",
+  "author": "",
+  "category": "utilities",
+  "capabilities": [
+    "batch_rename",
+    "batch_convert",
+    "filter_files",
+    "process_files",
+    "validate_structure"
+  ],
+  "required_tools": [],
+  "module": "agents.file_processor",
+  "class_name": "FileProcessorAgent"
+}

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 侦探 - 智能法律纠纷分析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .card-shadow {
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .typing-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            animation: typing 1.4s infinite ease-in-out both;
+        }
+
+        .typing-indicator:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .typing-indicator:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes typing {
+            0%, 80%, 100% {
+                transform: scale(0);
+            }
+            40% {
+                transform: scale(1);
+            }
+        }
+
+        .markdown-content h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 1.5rem 0 1rem 0;
+            color: #1a365d;
+        }
+
+        .markdown-content h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 1.25rem 0 0.75rem 0;
+            color: #2c5282;
+        }
+
+        .markdown-content ul, .markdown-content ol {
+            margin: 0.75rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .markdown-content li {
+            margin: 0.5rem 0;
+        }
+
+        .markdown-content p {
+            margin: 0.75rem 0;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg">
+    <div class="container mx-auto px-4 py-8">
+        <!-- 头部 -->
+        <header class="text-center mb-12 animate-fade-in">
+            <h1 class="text-5xl font-bold text-white mb-4">🔍 AI 侦探</h1>
+            <p class="text-xl text-white/90">基于深度法律推理的智能纠纷分析系统</p>
+        </header>
+
+        <!-- 主要内容区 -->
+        <div class="grid lg:grid-cols-2 gap-8">
+            <!-- 左侧：输入区 -->
+            <div class="glass rounded-2xl p-8 card-shadow animate-fade-in">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">📝 描述您的纠纷</h2>
+
+                <form id="caseForm" class="space-y-6">
+                    <!-- 案情描述 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            案情描述 <span class="text-red-500">*</span>
+                        </label>
+                        <textarea
+                            id="description"
+                            rows="6"
+                            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+                            placeholder="请详细描述您遇到的问题，包括：&#10;• 事件发生的时间和地点&#10;• 涉及的人员&#10;• 具体经过&#10;• 损失情况"
+                            required
+                        ></textarea>
+                    </div>
+
+                    <!-- 用户信息 -->
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">姓名</label>
+                            <input
+                                type="text"
+                                id="userName"
+                                class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                placeholder="您的姓名"
+                            >
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">联系电话</label>
+                            <input
+                                type="tel"
+                                id="userPhone"
+                                class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                placeholder="您的手机号"
+                            >
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">地址</label>
+                        <input
+                            type="text"
+                            id="userAddress"
+                            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                            placeholder="您的住址"
+                        >
+                    </div>
+
+                    <!-- 按钮组 -->
+                    <div class="flex gap-4">
+                        <button
+                            type="button"
+                            onclick="analyzeCase()"
+                            class="flex-1 btn-primary text-white font-medium py-4 px-6 rounded-xl flex items-center justify-center gap-2"
+                        >
+                            <span>🔎</span>
+                            <span>开始分析</span>
+                        </button>
+                        <button
+                            type="button"
+                            onclick="generateDocuments()"
+                            class="flex-1 bg-white border-2 border-purple-500 text-purple-600 font-medium py-4 px-6 rounded-xl hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
+                        >
+                            <span>📄</span>
+                            <span>生成材料</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 右侧：结果区 -->
+            <div class="glass rounded-2xl p-8 card-shadow animate-fade-in">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">📊 分析结果</h2>
+                    <button
+                        onclick="clearResults()"
+                        class="text-gray-500 hover:text-gray-700 transition-colors"
+                    >
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- 加载状态 -->
+                <div id="loading" class="hidden text-center py-12">
+                    <div class="flex justify-center gap-2 mb-4">
+                        <span class="typing-indicator"></span>
+                        <span class="typing-indicator"></span>
+                        <span class="typing-indicator"></span>
+                    </div>
+                    <p class="text-gray-500">AI 正在分析您的案件...</p>
+                </div>
+
+                <!-- 结果内容 -->
+                <div id="results" class="hidden space-y-6 max-h-[600px] overflow-y-auto">
+                    <!-- 动态内容 -->
+                </div>
+
+                <!-- 初始提示 -->
+                <div id="emptyState" class="text-center py-12">
+                    <div class="text-6xl mb-4">👋</div>
+                    <p class="text-gray-500">在左侧填写案情描述，点击"开始分析"</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部说明 -->
+        <div class="mt-8 text-center text-white/80 text-sm">
+            <p>⚠️ 本分析仅供参考，不构成正式法律意见。重要案件请咨询专业律师。</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+
+        // 分析案件
+        async function analyzeCase() {
+            const description = document.getElementById('description').value.trim();
+            if (!description) {
+                alert('请填写案情描述');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const response = await fetch(`${API_BASE}/analyze`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        description: description,
+                        context: {}
+                    })
+                });
+
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('分析失败，请检查后端服务是否启动');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // 生成材料
+        async function generateDocuments() {
+            const description = document.getElementById('description').value.trim();
+            if (!description) {
+                alert('请先填写案情描述并分析');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const response = await fetch(`${API_BASE}/documents/generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        description: description,
+                        user_info: {
+                            name: document.getElementById('userName').value,
+                            phone: document.getElementById('userPhone').value,
+                            address: document.getElementById('userAddress').value
+                        }
+                    })
+                });
+
+                const data = await response.json();
+                displayDocuments(data.documents);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('生成失败，请检查后端服务是否启动');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // 显示分析结果
+        function displayResults(data) {
+            const resultsDiv = document.getElementById('results');
+            const emptyState = document.getElementById('emptyState');
+
+            emptyState.classList.add('hidden');
+            resultsDiv.classList.remove('hidden');
+
+            let html = '';
+
+            // 事实要素
+            if (data.facts && data.facts.length > 0) {
+                html += `
+                    <div class="bg-blue-50 rounded-xl p-4">
+                        <h3 class="font-bold text-blue-800 mb-3">📌 事实要素</h3>
+                        <ul class="space-y-2">
+                            ${data.facts.map(f => `
+                                <li class="text-blue-700">${f.description}</li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            // 法律关系
+            if (data.legal_relations && data.legal_relations.length > 0) {
+                html += `
+                    <div class="bg-purple-50 rounded-xl p-4">
+                        <h3 class="font-bold text-purple-800 mb-3">⚖️ 法律关系</h3>
+                        <p class="text-purple-700">类型：${data.legal_relations[0].type}</p>
+                    </div>
+                `;
+            }
+
+            // 适用法律
+            if (data.applicable_laws && data.applicable_laws.length > 0) {
+                html += `
+                    <div class="bg-green-50 rounded-xl p-4">
+                        <h3 class="font-bold text-green-800 mb-3">📚 适用法律</h3>
+                        ${data.applicable_laws.map(law => `
+                            <div class="mb-3 text-green-700">
+                                <p class="font-medium">${law.law} ${law.article}</p>
+                                <p class="text-sm mt-1">${law.content.substring(0, 100)}...</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            // 法律责任
+            if (data.liability) {
+                html += `
+                    <div class="bg-orange-50 rounded-xl p-4">
+                        <h3 class="font-bold text-orange-800 mb-3">⚖️ 法律责任</h3>
+                        <p class="text-orange-700">责任主体：${data.liability.liable_party}</p>
+                        <p class="text-orange-700">责任类型：${data.liability.liability_type}</p>
+                        <p class="text-orange-700">责任依据：${data.liability.basis}</p>
+                    </div>
+                `;
+            }
+
+            // 风险评估
+            if (data.risk_assessment) {
+                html += `
+                    <div class="bg-red-50 rounded-xl p-4">
+                        <h3 class="font-bold text-red-800 mb-3">⚠️ 风险评估</h3>
+                        <p class="text-red-700">成功概率：${data.risk_assessment.success_probability}</p>
+                        <p class="text-red-700">时间成本：${data.risk_assessment.time_cost}</p>
+                        <p class="text-red-700">经济成本：${data.risk_assessment.economic_cost}</p>
+                    </div>
+                `;
+            }
+
+            // 建议
+            if (data.suggestions && data.suggestions.length > 0) {
+                html += `
+                    <div class="bg-indigo-50 rounded-xl p-4">
+                        <h3 class="font-bold text-indigo-800 mb-3">💡 建议</h3>
+                        <ul class="space-y-2">
+                            ${data.suggestions.map(s => `
+                                <li class="text-indigo-700">${s}</li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            // 置信度
+            html += `
+                <div class="bg-gray-50 rounded-xl p-4">
+                    <p class="text-gray-600 text-sm">AI 置信度：${(data.confidence * 100).toFixed(0)}%</p>
+                </div>
+            `;
+
+            resultsDiv.innerHTML = html;
+        }
+
+        // 显示生成的文档
+        function displayDocuments(documents) {
+            const resultsDiv = document.getElementById('results');
+            const emptyState = document.getElementById('emptyState');
+
+            emptyState.classList.add('hidden');
+            resultsDiv.classList.remove('hidden');
+
+            let html = '<div class="space-y-6">';
+
+            documents.forEach(doc => {
+                html += `
+                    <div class="border rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-gray-800">${doc.title}</h3>
+                            <button
+                                onclick="downloadDocument('${doc.title}', \`${escapeForJS(doc.content)}\`)"
+                                class="text-purple-600 hover:text-purple-800 transition-colors"
+                            >
+                                下载
+                            </button>
+                        </div>
+                        <div class="markdown-content max-h-96 overflow-y-auto text-gray-700 text-sm">
+                            ${markdownToHTML(doc.content)}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            resultsDiv.innerHTML = html;
+        }
+
+        // 简单的 Markdown 转 HTML
+        function markdownToHTML(markdown) {
+            let html = markdown
+                .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+                .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+                .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/gim, '<em>$1</em>')
+                .replace(/^- (.*$)/gim, '<li>$1</li>')
+                .replace(/^(\d+)\. (.*$)/gim, '<li>$2</li>')
+                .replace(/\n/gim, '<br>');
+
+            return html;
+        }
+
+        // 下载文档
+        function downloadDocument(title, content) {
+            const blob = new Blob([content], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${title}.md`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 转义 JS 字符串
+        function escapeForJS(str) {
+            return str.replace(/`/g, '\\`').replace(/\$/g, '\\$');
+        }
+
+        // 显示加载状态
+        function showLoading() {
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('results').classList.add('hidden');
+            document.getElementById('emptyState').classList.add('hidden');
+        }
+
+        // 隐藏加载状态
+        function hideLoading() {
+            document.getElementById('loading').classList.add('hidden');
+        }
+
+        // 清空结果
+        function clearResults() {
+            document.getElementById('results').classList.add('hidden');
+            document.getElementById('emptyState').classList.remove('hidden');
+            document.getElementById('results').innerHTML = '';
+        }
+    </script>
+</body>
+</html>

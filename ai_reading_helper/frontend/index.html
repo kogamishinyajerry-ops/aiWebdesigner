@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 阅读助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .typing-indicator::after {
+            content: '...';
+            animation: typing 1.5s infinite;
+        }
+
+        @keyframes typing {
+            0%, 100% { content: ''; }
+            33% { content: '.'; }
+            66% { content: '..'; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .keyword-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            margin: 4px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .keyword-tag:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- 头部 -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-white mb-2">
+                📖 AI 阅读助手
+            </h1>
+            <p class="text-white/80 text-lg">
+                让长文变短文，快速获取信息
+            </p>
+        </header>
+
+        <!-- 主内容区 -->
+        <div class="max-w-6xl mx-auto">
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- 左侧：输入区 -->
+                <div class="glass-card rounded-2xl p-6 shadow-2xl">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <span class="text-2xl mr-2">📝</span>
+                        输入文本
+                    </h2>
+
+                    <textarea
+                        id="inputText"
+                        class="w-full h-64 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none transition-all"
+                        placeholder="粘贴或输入你想要阅读的长文...&#10;&#10;例如：粘贴一篇文章、论文、报告等"
+                    ></textarea>
+
+                    <div class="flex items-center justify-between mt-4">
+                        <div class="text-sm text-gray-500">
+                            <span id="charCount">0</span> 字
+                        </div>
+                        <div class="flex gap-2">
+                            <button
+                                onclick="clearText()"
+                                class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                            >
+                                清空
+                            </button>
+                            <button
+                                onclick="analyzeText()"
+                                class="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg shadow-lg hover:shadow-xl transition-all"
+                            >
+                                ✨ 开始分析
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧：结果区 -->
+                <div class="glass-card rounded-2xl p-6 shadow-2xl">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <span class="text-2xl mr-2">📊</span>
+                        分析结果
+                    </h2>
+
+                    <div id="results" class="space-y-4">
+                        <div class="text-center text-gray-400 py-12">
+                            <div class="text-5xl mb-4">🤔</div>
+                            <p>输入文本后点击"开始分析"</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 详细结果卡片 -->
+            <div id="detailCards" class="mt-6 space-y-6 hidden">
+                <!-- 摘要卡片 -->
+                <div class="glass-card rounded-2xl p-6 shadow-2xl fade-in">
+                    <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center">
+                        <span class="text-xl mr-2">📋</span>
+                        内容摘要
+                    </h3>
+                    <div id="summary" class="text-gray-700 leading-relaxed">
+                    </div>
+                </div>
+
+                <!-- 关键观点卡片 -->
+                <div class="glass-card rounded-2xl p-6 shadow-2xl fade-in">
+                    <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center">
+                        <span class="text-xl mr-2">💡</span>
+                        关键观点
+                    </h3>
+                    <ul id="keyPoints" class="space-y-2">
+                    </ul>
+                </div>
+
+                <!-- 关键词卡片 -->
+                <div class="glass-card rounded-2xl p-6 shadow-2xl fade-in">
+                    <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center">
+                        <span class="text-xl mr-2">🔑</span>
+                        关键词
+                    </h3>
+                    <div id="keywords" class="flex flex-wrap">
+                    </div>
+                </div>
+
+                <!-- 阅读时间卡片 -->
+                <div class="glass-card rounded-2xl p-6 shadow-2xl fade-in">
+                    <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center">
+                        <span class="text-xl mr-2">⏱️</span>
+                        阅读信息
+                    </h3>
+                    <div class="flex items-center gap-6 text-gray-700">
+                        <div class="flex items-center">
+                            <span class="text-2xl mr-2">⏰</span>
+                            <span class="text-lg font-medium">预计阅读时间：<span id="readingTime" class="font-bold text-purple-600">0</span> 分钟</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 页脚 -->
+        <footer class="text-center mt-8 text-white/60 text-sm">
+            <p>🚀 AI 阅读助手 - 让阅读更高效</p>
+        </footer>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+
+        // 更新字符计数
+        document.getElementById('inputText').addEventListener('input', function() {
+            const count = this.value.length;
+            document.getElementById('charCount').textContent = count;
+        });
+
+        // 清空文本
+        function clearText() {
+            document.getElementById('inputText').value = '';
+            document.getElementById('charCount').textContent = '0';
+            document.getElementById('results').innerHTML = `
+                <div class="text-center text-gray-400 py-12">
+                    <div class="text-5xl mb-4">🤔</div>
+                    <p>输入文本后点击"开始分析"</p>
+                </div>
+            `;
+            document.getElementById('detailCards').classList.add('hidden');
+        }
+
+        // 分析文本
+        async function analyzeText() {
+            const text = document.getElementById('inputText').value.trim();
+
+            if (!text) {
+                alert('请输入文本后再分析');
+                return;
+            }
+
+            // 显示加载状态
+            document.getElementById('results').innerHTML = `
+                <div class="text-center py-12">
+                    <div class="text-5xl mb-4 animate-bounce">🤖</div>
+                    <p class="text-gray-600">AI 正在分析中<span class="typing-indicator"></span></p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`${API_URL}/api/v1/summary`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        language: 'zh'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('分析失败');
+                }
+
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                document.getElementById('results').innerHTML = `
+                    <div class="text-center py-12">
+                        <div class="text-5xl mb-4">❌</div>
+                        <p class="text-red-500">分析失败，请确保后端服务已启动</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 显示结果
+        function displayResults(data) {
+            // 更新右侧结果区
+            document.getElementById('results').innerHTML = `
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                        <span class="font-medium text-gray-700">📋 内容摘要</span>
+                        <span class="text-sm text-purple-600">${data.summary.substring(0, 50)}...</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-pink-50 rounded-lg">
+                        <span class="font-medium text-gray-700">💡 关键观点</span>
+                        <span class="text-sm text-pink-600">${data.key_points.length} 条</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                        <span class="font-medium text-gray-700">🔑 关键词</span>
+                        <span class="text-sm text-blue-600">${data.keywords.length} 个</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                        <span class="font-medium text-gray-700">⏱️ 阅读时间</span>
+                        <span class="text-sm text-green-600">${data.reading_time} 分钟</span>
+                    </div>
+                </div>
+            `;
+
+            // 显示详细卡片
+            document.getElementById('detailCards').classList.remove('hidden');
+            document.getElementById('summary').textContent = data.summary;
+            document.getElementById('readingTime').textContent = data.reading_time;
+
+            // 关键观点
+            const keyPointsList = document.getElementById('keyPoints');
+            keyPointsList.innerHTML = data.key_points.map(point =>
+                `<li class="flex items-start">
+                    <span class="text-pink-500 mr-2">•</span>
+                    <span class="text-gray-700">${point}</span>
+                </li>`
+            ).join('');
+
+            // 关键词
+            const keywordsDiv = document.getElementById('keywords');
+            const colors = ['bg-purple-100 text-purple-700', 'bg-pink-100 text-pink-700', 'bg-blue-100 text-blue-700', 'bg-green-100 text-green-700', 'bg-yellow-100 text-yellow-700'];
+            keywordsDiv.innerHTML = data.keywords.map((keyword, i) =>
+                `<span class="keyword-tag ${colors[i % colors.length]}">${keyword}</span>`
+            ).join('');
+        }
+    </script>
+</body>
+</html>

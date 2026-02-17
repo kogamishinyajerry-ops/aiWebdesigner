@@ -1,0 +1,18 @@
+{
+  "name": "git_operations",
+  "description": "Git 操作技能，提供版本控制相关的功能",
+  "version": "1.0.0",
+  "author": "",
+  "category": "development",
+  "dependencies": [],
+  "capabilities": [
+    "get_status",
+    "create_commit",
+    "create_branch",
+    "merge_branches",
+    "view_history",
+    "resolve_conflicts"
+  ],
+  "required_tools": ["git"],
+  "base_directory": "skills/git_operations"
+}

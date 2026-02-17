@@ -1,0 +1,18 @@
+{
+  "name": "code_reviewer",
+  "description": "代码审查代理，用于自动化代码审查和质量检查",
+  "version": "1.0.0",
+  "author": "",
+  "category": "quality",
+  "capabilities": [
+    "review_code",
+    "check_quality",
+    "detect_bugs",
+    "suggest_improvements",
+    "check_style",
+    "verify_tests"
+  ],
+  "required_tools": [],
+  "module": "agents.code_reviewer",
+  "class_name": "CodeReviewerAgent"
+}

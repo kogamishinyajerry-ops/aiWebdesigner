@@ -1,0 +1,23 @@
+{
+  "name": "code_explorer",
+  "description": "代码探索代理，用于在代码库中搜索、理解和分析代码结构",
+  "version": "1.0.0",
+  "author": "",
+  "category": "development",
+  "capabilities": [
+    "search_across_files",
+    "find_definitions",
+    "find_references",
+    "analyze_codebase",
+    "navigate_dependencies",
+    "locate_features"
+  ],
+  "required_tools": [
+    "search_file",
+    "search_content",
+    "read_file",
+    "list_files"
+  ],
+  "module": "agents.code_explorer",
+  "class_name": "CodeExplorerAgent"
+}

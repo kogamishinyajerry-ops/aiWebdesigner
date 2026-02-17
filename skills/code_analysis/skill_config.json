@@ -1,0 +1,17 @@
+{
+  "name": "code_analysis",
+  "description": "代码分析技能，用于理解、分析和优化代码结构",
+  "version": "1.0.0",
+  "author": "",
+  "category": "development",
+  "dependencies": [],
+  "capabilities": [
+    "analyze_code_structure",
+    "detect_code_smells",
+    "find_dependencies",
+    "analyze_complexity",
+    "generate_documentation"
+  ],
+  "required_tools": [],
+  "base_directory": "skills/code_analysis"
+}
