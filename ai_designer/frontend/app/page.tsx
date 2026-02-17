@@ -23,7 +23,7 @@ export default function HomePage() {
           </p>
           
           <div className="flex gap-4 justify-center">
-            <Button size="lg" className="text-lg">
+            <Button size="lg" variant="gradient" className="text-lg">
               <Rocket className="w-5 h-5 mr-2" />
               开始创作
             </Button>
