@@ -1,0 +1,48 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+python-multipart==0.0.6
+
+# LLM Integration
+openai==1.7.2
+anthropic==0.18.0
+langchain==0.1.0
+langchain-openai==0.0.2
+langchain-anthropic==0.0.1
+
+# Memory & Context
+mem0ai==0.1.0
+chromadb==0.4.22
+sentence-transformers==2.2.2
+
+# Code Analysis
+tree-sitter==0.20.4
+ast-decompiler==0.7.0
+black==24.1.1
+pylint==3.0.3
+mypy==1.8.0
+
+# Observability
+opentelemetry-api==1.22.0
+opentelemetry-sdk==1.22.0
+opentelemetry-exporter-jaeger==1.22.0
+opentelemetry-instrumentation-fastapi==0.42b0
+
+# Database
+sqlalchemy==2.0.25
+alembic==1.13.1
+psycopg2-binary==2.9.9
+redis==5.0.1
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+playwright==1.40.0
+
+# Utilities
+python-dotenv==1.0.0
+httpx==0.26.0
+pyyaml==6.0.1
+aiofiles==23.2.1
+loguru==0.7.2
