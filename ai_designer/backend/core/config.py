@@ -71,6 +71,12 @@ class Settings(BaseSettings):
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 60
     RATE_LIMIT_PER_HOUR: int = 1000
+    RATE_LIMIT_REQUESTS: int = 100
+    RATE_LIMIT_WINDOW: int = 60
+    
+    # Caching
+    CACHE_TTL: int = 3600  # 1 hour
+    CACHE_ENABLED: bool = True
     
     # Image Generation
     DEFAULT_IMAGE_WIDTH: int = 1920

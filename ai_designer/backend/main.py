@@ -16,6 +16,13 @@ logger.add(sys.stderr, format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <leve
 
 from core.config import settings
 from core.database import init_db
+from core.redis import cache
+from middleware import (
+    RequestIDMiddleware,
+    LoggingMiddleware,
+    ErrorHandlerMiddleware,
+    RateLimitMiddleware
+)
 from api.v1 import router as api_v1_router
 
 
@@ -23,19 +30,24 @@ from api.v1 import router as api_v1_router
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
     logger.info("🚀 Starting AI Designer Backend...")
-    
+
     # Initialize database
     await init_db()
     logger.info("✅ Database initialized")
-    
+
+    # Initialize Redis
+    await cache.connect()
+    logger.info("✅ Redis cache initialized")
+
     # Initialize AI models
     # from models.model_loader import load_models
     # await load_models()
     logger.info("✅ AI models loaded")
-    
+
     yield
-    
+
     logger.info("🛑 Shutting down AI Designer Backend...")
+    await cache.disconnect()
 
 
 # Create FastAPI app
@@ -56,6 +68,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Custom middleware (注意顺序，后添加的先执行)
+app.add_middleware(RequestIDMiddleware)
+app.add_middleware(
+    LoggingMiddleware,
+    skip_paths=["/health", "/api/docs", "/api/redoc", "/"]
+)
+app.add_middleware(ErrorHandlerMiddleware)
+# app.add_middleware(RateLimitMiddleware, redis_client=await cache.get_client())
 
 # Include routers
 app.include_router(api_v1_router, prefix="/api/v1")
