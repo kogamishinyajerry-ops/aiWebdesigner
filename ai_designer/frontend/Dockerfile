@@ -1,40 +1,53 @@
-# Frontend Dockerfile
+# 构建阶段
 FROM node:20-alpine AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files
+# 设置环境变量
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    NODE_ENV=production
+
+# 复制依赖文件
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# 安装依赖
+RUN npm ci --only=production
 
-# Copy source code
+# 复制源代码
 COPY . .
 
-# Build application
+# 构建应用
 RUN npm run build
 
-# Production stage
+# 生产镜像
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy built files
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package*.json ./
+# 设置环境变量
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1
 
-# Install production dependencies
-RUN npm ci --only=production
+# 创建非 root 用户
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001
 
-# Expose port
+# 复制构建产物
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/next.config.js ./
+
+# 切换到非 root 用户
+USER nextjs
+
+# 暴露端口
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:3000 || exit 1
 
-# Run application
+# 启动命令
 CMD ["npm", "start"]
