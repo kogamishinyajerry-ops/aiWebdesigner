@@ -17,12 +17,12 @@ logger.add(sys.stderr, format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <leve
 from core.config import settings
 from core.database import init_db
 from core.redis import cache
-from middleware import (
-    RequestIDMiddleware,
-    LoggingMiddleware,
-    ErrorHandlerMiddleware,
-    RateLimitMiddleware
-)
+# from middleware import (
+#     RequestIDMiddleware,
+#     LoggingMiddleware,
+#     ErrorHandlerMiddleware,
+#     RateLimitMiddleware
+# )
 from api.v1 import router as api_v1_router
 
 
@@ -31,24 +31,35 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager"""
     logger.info("🚀 Starting AI Designer Backend...")
 
-    # Initialize database
-    await init_db()
-    logger.info("✅ Database initialized")
+    # Initialize database (skip if disabled)
+    try:
+        await init_db()
+        logger.info("✅ Database initialized")
+    except Exception as e:
+        logger.warning(f"⚠️ Database initialization skipped: {e}")
 
-    # Initialize Redis
-    await cache.connect()
-    logger.info("✅ Redis cache initialized")
+    # Initialize Redis (skip if disabled)
+    try:
+        await cache.connect()
+        logger.info("✅ Redis cache initialized")
+    except Exception as e:
+        logger.warning(f"⚠️ Redis initialization skipped: {e}")
 
-    # Initialize AI models
-    from services import model_manager
-    await model_manager.load_all_models()
-    logger.info("✅ AI models loaded")
+    # Initialize AI models (skip for now)
+    try:
+        from services import model_manager
+        await model_manager.load_all_models()
+        logger.info("✅ AI models loaded")
+    except Exception as e:
+        logger.warning(f"⚠️ AI models loading skipped: {e}")
 
     yield
 
     logger.info("🛑 Shutting down AI Designer Backend...")
-    await cache.disconnect()
-    await model_manager.unload_all()
+    try:
+        await cache.disconnect()
+    except:
+        pass
 
 
 # Create FastAPI app
@@ -71,12 +82,12 @@ app.add_middleware(
 )
 
 # Custom middleware (注意顺序，后添加的先执行)
-app.add_middleware(RequestIDMiddleware)
-app.add_middleware(
-    LoggingMiddleware,
-    skip_paths=["/health", "/api/docs", "/api/redoc", "/"]
-)
-app.add_middleware(ErrorHandlerMiddleware)
+# app.add_middleware(RequestIDMiddleware)
+# app.add_middleware(
+#     LoggingMiddleware,
+#     skip_paths=["/health", "/api/docs", "/api/redoc", "/"]
+# )
+# app.add_middleware(ErrorHandlerMiddleware)
 # app.add_middleware(RateLimitMiddleware, redis_client=await cache.get_client())
 
 # Include routers

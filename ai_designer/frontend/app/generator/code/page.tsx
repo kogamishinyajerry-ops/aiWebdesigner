@@ -9,20 +9,25 @@ import { apiService } from '@/lib/api-service'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
-const presets = [
-  { name: 'Hero Banner', prompt: '现代科技风格hero banner,渐变背景,抽象几何图形' },
-  { name: '产品展示', prompt: '极简产品展示页面,白色背景,高质感' },
-  { name: '登录页', prompt: '登录页面背景,磨砂玻璃效果,优雅渐变' },
-  { name: '数据可视化', prompt: '仪表板背景,深色模式,科技感' },
+const codePresets = [
+  { name: '登录表单', prompt: '现代登录表单,包含邮箱密码输入,记住我,忘记密码按钮' },
+  { name: '产品卡片', prompt: '产品展示卡片,包含图片,标题,描述,价格,购买按钮' },
+  { name: '导航栏', prompt: '响应式导航栏,包含logo,菜单链接,搜索框,用户头像' },
+  { name: '定价表', prompt: '三栏定价表,包含基础版,专业版,企业版,特性列表' },
 ]
 
-export default function ImageGeneratorPage() {
+const frameworks = [
+  { id: 'tailwind', name: 'Tailwind CSS' },
+  { id: 'css', name: 'CSS Modules' },
+  { id: 'styled', name: 'Styled Components' },
+]
+
+export default function CodeGeneratorPage() {
   const [prompt, setPrompt] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null)
+  const [generatedCode, setGeneratedCode] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [selectedSize, setSelectedSize] = useState('1920x1080')
-  const [selectedStyle, setSelectedStyle] = useState('modern_minimal')
+  const [selectedFramework, setSelectedFramework] = useState('tailwind')
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return
@@ -30,24 +35,19 @@ export default function ImageGeneratorPage() {
     setIsGenerating(true)
     setError(null)
     try {
-      const [width, height] = selectedSize.split('x').map(Number)
-
-      const response = await apiService.generateImage({
+      const response = await apiService.generateCode({
         prompt: prompt.trim(),
-        width,
-        height,
-        style: selectedStyle,
-        num_inference_steps: 30,
-        guidance_scale: 7.5,
+        framework: selectedFramework,
+        component_type: 'component',
       })
 
-      if (response.success && response.image_base64) {
-        setGeneratedImage(`data:image/png;base64,${response.image_base64}`)
+      if (response.success && response.code) {
+        setGeneratedCode(response.code)
       } else {
         throw new Error('生成失败')
       }
     } catch (error) {
-      console.error('生成失败:', error)
+      console.error('代码生成失败:', error)
       setError(error instanceof Error ? error.message : '生成失败，请重试')
     } finally {
       setIsGenerating(false)
@@ -58,12 +58,20 @@ export default function ImageGeneratorPage() {
     setPrompt(presetPrompt)
   }
 
+  const handleCopy = () => {
+    if (!generatedCode) return
+    navigator.clipboard.writeText(generatedCode)
+  }
+
   const handleDownload = () => {
-    if (!generatedImage) return
+    if (!generatedCode) return
+    const blob = new Blob([generatedCode], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
-    link.href = generatedImage
-    link.download = `ai-generated-${Date.now()}.png`
+    link.href = url
+    link.download = `generated-code-${Date.now()}.tsx`
     link.click()
+    URL.revokeObjectURL(url)
   }
 
   return (
@@ -76,13 +84,14 @@ export default function ImageGeneratorPage() {
             返回首页
           </Button>
         </Link>
+
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            图像生成器
+            代码生成器
           </h1>
           <p className="text-muted-foreground mt-2">
-            使用AI生成高质量的网页图像素材
+            使用AI将设计描述转换为可运行的代码
           </p>
         </div>
 
@@ -91,9 +100,9 @@ export default function ImageGeneratorPage() {
           <div className="lg:col-span-1 space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>输入描述</CardTitle>
+                <CardTitle>设计描述</CardTitle>
                 <CardDescription>
-                  描述您想要生成的图像
+                  描述您想要的UI组件或页面
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -104,7 +113,7 @@ export default function ImageGeneratorPage() {
                   <textarea
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="例如: 现代科技风格hero banner,渐变背景,抽象几何图形..."
+                    placeholder="例如: 现代登录表单,包含邮箱密码输入,记住我,忘记密码按钮..."
                     className="w-full h-32 px-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring resize-none"
                   />
                 </div>
@@ -114,7 +123,7 @@ export default function ImageGeneratorPage() {
                     快捷预设
                   </label>
                   <div className="grid grid-cols-2 gap-2">
-                    {presets.map((preset) => (
+                    {codePresets.map((preset) => (
                       <Button
                         key={preset.name}
                         variant="outline"
@@ -134,47 +143,36 @@ export default function ImageGeneratorPage() {
                   variant="gradient"
                   className="w-full"
                 >
-                  {isGenerating ? '生成中...' : '生成图像'}
+                  {isGenerating ? '生成中...' : '生成代码'}
                 </Button>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>生成设置</CardTitle>
+                <CardTitle>代码设置</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <label className="text-sm font-medium mb-2 block">
-                    图像尺寸
+                    框架
                   </label>
                   <select
-                    value={selectedSize}
-                    onChange={(e) => setSelectedSize(e.target.value)}
+                    value={selectedFramework}
+                    onChange={(e) => setSelectedFramework(e.target.value)}
                     className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background"
                   >
-                    <option value="1920x1080">1920 x 1080 (16:9)</option>
-                    <option value="1280x720">1280 x 720 (16:9)</option>
-                    <option value="1080x1080">1080 x 1080 (1:1)</option>
-                    <option value="800x600">800 x 600 (4:3)</option>
+                    {frameworks.map((fw) => (
+                      <option key={fw.id} value={fw.id}>
+                        {fw.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    风格
-                  </label>
-                  <select
-                    value={selectedStyle}
-                    onChange={(e) => setSelectedStyle(e.target.value)}
-                    className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background"
-                  >
-                    <option value="modern_minimal">现代简约</option>
-                    <option value="tech_cyber">科技感</option>
-                    <option value="elegant_fancy">优雅精致</option>
-                    <option value="playful_vibrant">活泼活泼</option>
-                    <option value="nature_organic">自然有机</option>
-                  </select>
+                <div className="text-xs text-muted-foreground">
+                  <p>生成的代码基于 React + TypeScript</p>
+                  <p className="mt-2">支持自定义样式和交互逻辑</p>
                 </div>
 
                 {error && (
@@ -192,42 +190,48 @@ export default function ImageGeneratorPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>生成预览</CardTitle>
+                    <CardTitle>生成代码</CardTitle>
                     <CardDescription>
-                      生成的图像将显示在这里
+                      生成的代码将显示在这里
                     </CardDescription>
                   </div>
-                  {generatedImage && (
+                  {generatedCode && (
                     <div className="flex gap-2">
-                      <Badge variant="secondary">1920x1080</Badge>
-                      <Badge variant="outline">PNG</Badge>
+                      <Badge variant="secondary">React</Badge>
+                      <Badge variant="outline">TypeScript</Badge>
+                      <Badge variant="outline">
+                        {frameworks.find((f) => f.id === selectedFramework)?.name}
+                      </Badge>
                     </div>
                   )}
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="aspect-video rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/50">
+                <div className="bg-muted rounded-lg border">
                   {isGenerating ? (
-                    <div className="w-full space-y-3">
-                      <Skeleton className="h-64 w-full" />
-                      <div className="flex gap-2">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-4 w-32" />
+                    <div className="p-8 space-y-3">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                      <div className="pt-4">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-2/3" />
                       </div>
                     </div>
-                  ) : generatedImage ? (
-                    <div className="w-full h-full flex flex-col items-center justify-center space-y-4">
-                      <img
-                        src={generatedImage}
-                        alt="Generated"
-                        className="max-w-full max-h-full object-contain rounded-lg"
-                      />
-                      <div className="flex gap-2">
+                  ) : generatedCode ? (
+                    <div className="relative">
+                      <pre className="p-4 text-xs overflow-x-auto max-h-[500px]">
+                        <code>{generatedCode}</code>
+                      </pre>
+                      <div className="absolute top-2 right-2 flex gap-2">
+                        <Button onClick={handleCopy} variant="outline" size="sm">
+                          复制
+                        </Button>
                         <Button onClick={handleDownload} variant="outline" size="sm">
                           下载
                         </Button>
                         <Button
-                          onClick={() => setGeneratedImage(null)}
+                          onClick={() => setGeneratedCode(null)}
                           variant="outline"
                           size="sm"
                         >
@@ -236,19 +240,30 @@ export default function ImageGeneratorPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="text-center space-y-4">
-                      <div className="text-6xl opacity-50">🖼️</div>
+                    <div className="text-center py-16 space-y-4">
+                      <div className="text-6xl opacity-50">🎨</div>
                       <div>
                         <p className="text-sm text-muted-foreground mb-2">
-                          在左侧输入描述并点击生成
+                          在左侧输入设计描述并点击生成
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          支持多种风格和尺寸
+                          支持多种框架和样式方案
                         </p>
                       </div>
                     </div>
                   )}
                 </div>
+
+                {generatedCode && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium mb-2">使用说明</h4>
+                    <div className="bg-muted/50 p-4 rounded-md text-xs space-y-2">
+                      <p>1. 复制生成的代码到您的项目中</p>
+                      <p>2. 根据需要调整样式和逻辑</p>
+                      <p>3. 确保已安装相关依赖</p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

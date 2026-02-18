@@ -2,7 +2,7 @@
 Image generation schemas
 """
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 from enum import Enum
 
@@ -97,13 +97,15 @@ class ImageGenerationRequest(BaseModel):
         le=2147483647
     )
 
-    @validator('width', 'height')
+    @field_validator('width', 'height')
+    @classmethod
     def validate_dimensions(cls, v):
         if v % 64 != 0:
             raise ValueError('Dimensions must be multiples of 64')
         return v
 
-    @validator('prompt')
+    @field_validator('prompt')
+    @classmethod
     def validate_prompt(cls, v):
         if not v or not v.strip():
             raise ValueError('Prompt cannot be empty')

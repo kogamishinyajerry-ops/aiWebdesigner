@@ -76,7 +76,14 @@ async def generate_code(request: CodeGenerationRequest, http_request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/design-to-code")
+class DesignToCodeResponse(BaseModel):
+    """Design to code response"""
+    success: bool
+    message: str
+    framework: str
+
+
+@router.post("/design-to-code", response_model=DesignToCodeResponse)
 async def design_to_code(
     image: UploadFile = File(...),
     framework: str = "react",
@@ -98,10 +105,15 @@ async def design_to_code(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class ComponentLibraryRequest(BaseModel):
+    """Component library request"""
+    theme: str = Field(default="modern", description="Component library theme")
+    components: Optional[List[str]] = Field(None, description="List of components to generate")
+
+
 @router.post("/component-library")
 async def generate_component_library(
-    theme: str = Field(default="modern", description="Component library theme"),
-    components: Optional[List[str]] = Field(None, description="List of components to generate"),
+    request: ComponentLibraryRequest,
     http_request: Request = None
 ):
     """
@@ -111,12 +123,12 @@ async def generate_component_library(
         request_id = getattr(http_request.state, "request_id", "unknown")
         start_time = datetime.now()
 
-        logger.info(f"[{request_id}] Generating component library with theme: {theme}")
+        logger.info(f"[{request_id}] Generating component library with theme: {request.theme}")
 
         # Generate component library
         components = await code_service.generate_component_library(
-            theme=theme,
-            components=components
+            theme=request.theme,
+            components=request.components
         )
 
         generation_time = (datetime.now() - start_time).total_seconds()
@@ -135,7 +147,7 @@ async def generate_component_library(
 
         return {
             "success": True,
-            "theme": theme,
+            "theme": request.theme,
             "components": component_list,
             "generation_time": generation_time,
             "request_id": request_id
@@ -147,21 +159,26 @@ async def generate_component_library(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class OptimizeCodeRequest(BaseModel):
+    """Code optimization request"""
+    code: str = Field(..., description="Code to optimize")
+    framework: str = Field(default="react", description="Target framework")
+
+
 @router.post("/optimize")
 async def optimize_code(
-    code: str = Field(..., description="Code to optimize"),
-    framework: str = Field(default="react", description="Target framework")
+    request: OptimizeCodeRequest
 ):
     """
     Optimize existing code
     """
     try:
-        request_id = getattr(http_request.state, "request_id", "unknown")
+        request_id = "unknown"
 
         logger.info(f"[{request_id}] Optimizing code")
 
         # Optimize code
-        result = await code_service.optimize_code(code, framework)
+        result = await code_service.optimize_code(request.code, request.framework)
 
         logger.info(f"[{request_id}] Code optimized")
 

@@ -1,173 +1,194 @@
 """
-Aesthetic Engine Endpoints
-美学引擎API - 风格识别、色彩推荐、审美评分
+Aesthetic Design API Endpoints
+美学设计API - 基于艺术巨匠风格的前端美学方案生成
 """
 
-from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel, Field
-from typing import Optional
+from fastapi import APIRouter, HTTPException, status
 from loguru import logger
-from datetime import datetime
+import time
+import uuid
 
-from services import aesthetic_engine
-
-router = APIRouter()
-
-
-class ColorRecommendationRequest(BaseModel):
-    """色彩推荐请求"""
-    description: Optional[str] = Field(None, description="设计描述")
-    style: Optional[str] = Field(None, description="风格预设")
-    mood: Optional[str] = Field(None, description="情绪/氛围")
-
-
-class StyleAnalysisRequest(BaseModel):
-    """风格分析请求"""
-    description: str = Field(..., description="设计描述")
+from schemas.aesthetic import (
+    AestheticDesignRequest,
+    AestheticDesignResponse,
+    ArtStylePresetsResponse,
+    ArtMasterStyle,
+    UIComponent
+)
+from services.aesthetic_generation import aesthetic_service
 
 
-class AestheticScoreRequest(BaseModel):
-    """美学评分请求"""
-    description: str = Field(..., description="设计描述")
-    style: Optional[str] = Field(None, description="设计风格")
-    has_gradient: bool = Field(default=False, description="是否包含渐变")
-    has_good_spacing: bool = Field(default=False, description="是否有良好间距")
-    has_good_contrast: bool = Field(default=False, description="是否有良好对比度")
+router = APIRouter(prefix="", tags=["aesthetic"])
 
 
-@router.post("/colors/recommend")
-async def recommend_colors(request: ColorRecommendationRequest, http_request: Request):
+@router.post("/design", response_model=AestheticDesignResponse, status_code=status.HTTP_200_OK)
+async def generate_aesthetic_design(request: AestheticDesignRequest):
     """
-    推荐色彩方案
+    生成完整的美学设计方案
+
+    基于艺术巨匠的风格，为指定的页面和组件生成完整的美学方案，
+    包括色彩方案、排版、组件样式、交互动效和视觉素材提示词。
+
+    **输入:**
+    - art_style: 参考的艺术风格 (如 van_gogh, picasso, dali等)
+    - page_description: 页面描述（布局、功能、场景）
+    - target_components: 需要设计的组件列表
+    - color_preference: 可选，颜色偏好
+    - mood: 可选，情感基调
+    - complexity: 复杂度 (low, medium, high)
+    - include_interactions: 是否包含交互设计
+    - include_assets: 是否生成视觉素材提示词
+
+    **输出:**
+    - aesthetic_analysis: 艺术风格分析
+    - global_color_palette: 全局色彩方案
+    - global_typography: 全局排版方案
+    - component_designs: 各组件的设计方案（含CSS和Tailwind类名）
+    - interactions: 交互动效设计
+    - visual_assets: 视觉素材AI生成提示词
+    - design_summary: 完整设计摘要
     """
+    request_id = str(uuid.uuid4())
+    start_time = time.time()
+
     try:
-        request_id = getattr(http_request.state, "request_id", "unknown")
+        logger.info(f"[{request_id}] Aesthetic design request | Style: {request.art_style} | Components: {len(request.target_components)}")
 
-        logger.info(f"[{request_id}] Recommending colors | Style: {request.style} | Mood: {request.mood}")
-
-        result = aesthetic_engine.recommend_colors(
-            description=request.description,
-            style=request.style,
-            mood=request.mood
+        # 调用服务生成设计
+        result = aesthetic_service.generate_aesthetic_design(
+            art_style=request.art_style.value,
+            page_description=request.page_description,
+            target_components=[comp.value for comp in request.target_components],
+            color_preference=request.color_preference,
+            mood=request.mood,
+            complexity=request.complexity,
+            include_interactions=request.include_interactions,
+            include_assets=request.include_assets
         )
 
-        logger.info(f"[{request_id}] Color palette recommended")
+        generation_time = time.time() - start_time
 
-        return {
-            "success": True,
-            **result,
-            "request_id": request_id
-        }
+        logger.info(f"[{request_id}] Aesthetic design generated in {generation_time:.2f}s")
 
-    except Exception as e:
-        request_id = getattr(http_request.state, "request_id", "unknown")
-        logger.error(f"[{request_id}] Color recommendation failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/style/analyze")
-async def analyze_style(request: StyleAnalysisRequest, http_request: Request):
-    """
-    分析设计风格
-    """
-    try:
-        request_id = getattr(http_request.state, "request_id", "unknown")
-
-        logger.info(f"[{request_id}] Analyzing style: {request.description}")
-
-        result = aesthetic_engine.analyze_style(request.description)
-
-        logger.info(f"[{request_id}] Style analyzed: {result['primary_style']}")
-
-        return {
-            "success": True,
-            **result,
-            "request_id": request_id
-        }
-
-    except Exception as e:
-        request_id = getattr(http_request.state, "request_id", "unknown")
-        logger.error(f"[{request_id}] Style analysis failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/score")
-async def calculate_aesthetic_score(request: AestheticScoreRequest, http_request: Request):
-    """
-    计算美学评分
-    """
-    try:
-        request_id = getattr(http_request.state, "request_id", "unknown")
-
-        logger.info(f"[{request_id}] Calculating aesthetic score")
-
-        result = aesthetic_engine.calculate_aesthetic_score(
-            description=request.description,
-            style=request.style,
-            has_gradient=request.has_gradient,
-            has_good_spacing=request.has_good_spacing,
-            has_good_contrast=request.has_good_contrast
+        return AestheticDesignResponse(
+            success=True,
+            request_id=request_id,
+            generation_time=generation_time,
+            aesthetic_analysis=result["aesthetic_analysis"],
+            global_color_palette=result["global_color_palette"],
+            global_typography=result["global_typography"],
+            component_designs=result["component_designs"],
+            interactions=result["interactions"],
+            visual_assets=result["visual_assets"],
+            design_summary=result["design_summary"]
         )
 
-        logger.info(f"[{request_id}] Aesthetic score: {result['total_score']:.2f} ({result['grade']})")
+    except Exception as e:
+        logger.error(f"[{request_id}] Failed to generate aesthetic design: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate aesthetic design: {str(e)}"
+        )
 
-        return {
-            "success": True,
-            **result,
-            "request_id": request_id
-        }
+
+@router.get("/styles", response_model=ArtStylePresetsResponse)
+async def get_art_style_presets():
+    """
+    获取可用的艺术风格列表
+
+    返回所有可用的艺术巨匠风格及其描述，帮助用户选择合适的风格。
+    """
+    try:
+        styles = []
+        for style_key, style_info in aesthetic_service.ART_STYLES.items():
+            styles.append({
+                "value": style_key,
+                "name": style_info["name"],
+                "description": style_info["description"],
+                "mood": style_info["mood"],
+                "suitability": style_info["suitability"],
+                "primary_colors": style_info["primary_colors"]
+            })
+
+        return ArtStylePresetsResponse(styles=styles)
 
     except Exception as e:
-        request_id = getattr(http_request.state, "request_id", "unknown")
-        logger.error(f"[{request_id}] Aesthetic score calculation failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Failed to get art style presets: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get art style presets: {str(e)}"
+        )
 
 
-@router.get("/palettes")
-async def get_color_palettes():
+@router.get("/components")
+async def get_ui_components():
     """
-    获取所有可用色彩方案
+    获取可用的UI组件列表
+
+    返回所有支持设计的UI组件类型。
     """
-    return {
-        "success": True,
-        "palettes": aesthetic_engine.COLOR_PALETTES
-    }
+    try:
+        components = [
+            {
+                "value": comp.value,
+                "name": comp.value.replace("_", " ").title(),
+                "description": f"{comp.value.replace('_', ' ')} component design"
+            }
+            for comp in UIComponent
+        ]
+
+        return {"components": components}
+
+    except Exception as e:
+        logger.error(f"Failed to get UI components: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get UI components: {e}"
+        )
 
 
-@router.get("/styles")
-async def get_available_styles():
+@router.post("/analyze")
+async def analyze_aesthetic_style(
+    art_style: ArtMasterStyle,
+    page_description: str
+):
     """
-    获取所有可用风格
+    分析艺术风格适用性
+
+    给定艺术风格和页面描述，分析该风格的适用性和建议。
     """
-    styles = [
-        {
-            "id": style,
-            "keywords": keywords
+    try:
+        style_info = aesthetic_service.ART_STYLES.get(art_style.value)
+
+        if not style_info:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Art style {art_style.value} not found"
+            )
+
+        # 简单的适用性分析
+        analysis = {
+            "style": style_info["name"],
+            "suitability_score": 0.85,  # 示例分数
+            "recommendations": [
+                f"Use {style_info['primary_colors'][0]} as primary color",
+                f"Incorporate {style_info['key_characteristics'][0]}",
+                f"Apply {style_info['interaction']} for interactions"
+            ],
+            "potential_challenges": [
+                "May require careful color balancing",
+                "Typography should complement the art style"
+            ],
+            "best_use_cases": style_info["suitability"]
         }
-        for style, keywords in aesthetic_engine.STYLE_KEYWORDS.items()
-    ]
 
-    return {
-        "success": True,
-        "styles": styles
-    }
+        return {"analysis": analysis}
 
-
-@router.get("/moods")
-async def get_available_moods():
-    """
-    获取所有可用情绪预设
-    """
-    moods = [
-        {"id": "calm", "name": "Calm", "description": "Peaceful and relaxing"},
-        {"id": "energetic", "name": "Energetic", "description": "Dynamic and exciting"},
-        {"id": "natural", "name": "Natural", "description": "Organic and fresh"},
-        {"id": "luxury", "name": "Luxury", "description": "Premium and elegant"},
-        {"id": "professional", "name": "Professional", "description": "Business-like and trustworthy"},
-        {"id": "clean", "name": "Clean", "description": "Simple and uncluttered"}
-    ]
-
-    return {
-        "success": True,
-        "moods": moods
-    }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to analyze aesthetic style: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to analyze aesthetic style: {str(e)}"
+        )

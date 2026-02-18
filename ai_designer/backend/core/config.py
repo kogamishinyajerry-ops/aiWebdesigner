@@ -3,8 +3,10 @@ Configuration Management
 使用Pydantic Settings管理配置
 """
 
-from typing import List, Optional
+from typing import List, Optional, Union
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+import os
 
 
 class Settings(BaseSettings):
@@ -29,11 +31,18 @@ class Settings(BaseSettings):
     WORKERS: int = 1
 
     # CORS
-    CORS_ORIGINS: List[str] = [
+    CORS_ORIGINS: Union[str, List[str]] = [
         "http://localhost:3000",
         "http://localhost:3001",
         "http://127.0.0.1:3000"
     ]
+
+    @field_validator('CORS_ORIGINS', mode='before')
+    @classmethod
+    def parse_cors_origins(cls, v):
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v
 
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://ai_designer:ai_designer@localhost:5432/ai_designer"

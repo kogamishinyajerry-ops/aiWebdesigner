@@ -34,6 +34,14 @@ class SVGGenerationResponse(BaseModel):
     request_id: Optional[str] = None
 
 
+class IconSetRequest(BaseModel):
+    """Icon set generation request"""
+    concept: str = Field(..., description="Icon concept (navigation, social, e-commerce, etc.)")
+    count: int = Field(default=10, ge=1, le=20, description="Number of icons to generate")
+    style: str = Field(default="outline", description="Icon style")
+    size: int = Field(default=512, ge=64, le=1024, description="Icon size")
+
+
 @router.post("/generate", response_model=SVGGenerationResponse)
 async def generate_svg(request: SVGGenerationRequest, http_request: Request):
     """
@@ -76,10 +84,7 @@ async def generate_svg(request: SVGGenerationRequest, http_request: Request):
 
 @router.post("/icon-set")
 async def generate_icon_set(
-    concept: str = Field(..., description="Icon concept (navigation, social, e-commerce, etc.)"),
-    count: int = Field(default=10, ge=1, le=20, description="Number of icons to generate"),
-    style: str = Field(default="outline", description="Icon style"),
-    size: int = Field(default=512, ge=64, le=1024, description="Icon size"),
+    request: IconSetRequest,
     http_request: Request = None
 ):
     """
@@ -89,14 +94,14 @@ async def generate_icon_set(
         request_id = getattr(http_request.state, "request_id", "unknown")
         start_time = datetime.now()
 
-        logger.info(f"[{request_id}] Generating {count} icons for: {concept}")
+        logger.info(f"[{request_id}] Generating {request.count} icons for: {request.concept}")
 
         # Generate icon set
         icons = await svg_service.generate_icon_set(
-            concept=concept,
-            count=count,
-            style=style,
-            size=size
+            concept=request.concept,
+            count=request.count,
+            style=request.style,
+            size=request.size
         )
 
         generation_time = (datetime.now() - start_time).total_seconds()
@@ -116,7 +121,7 @@ async def generate_icon_set(
 
         return {
             "success": True,
-            "concept": concept,
+            "concept": request.concept,
             "icons": icon_list,
             "generation_time": generation_time,
             "request_id": request_id

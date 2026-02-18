@@ -9,20 +9,27 @@ import { apiService } from '@/lib/api-service'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
-const presets = [
-  { name: 'Hero Banner', prompt: '现代科技风格hero banner,渐变背景,抽象几何图形' },
-  { name: '产品展示', prompt: '极简产品展示页面,白色背景,高质感' },
-  { name: '登录页', prompt: '登录页面背景,磨砂玻璃效果,优雅渐变' },
-  { name: '数据可视化', prompt: '仪表板背景,深色模式,科技感' },
+const svgPresets = [
+  { name: 'Logo图标', prompt: '现代简约logo图标,几何形状,扁平化设计' },
+  { name: '背景图案', prompt: '网页背景图案,抽象几何,重复纹理' },
+  { name: '插画元素', prompt: '扁平化插画元素,人物图标,简洁风格' },
+  { name: '数据图表', prompt: '数据可视化图表,柱状图,折线图' },
 ]
 
-export default function ImageGeneratorPage() {
+const styles = [
+  { id: 'minimal', name: '简约风格' },
+  { id: 'modern', name: '现代风格' },
+  { id: 'playful', name: '活泼风格' },
+  { id: 'geometric', name: '几何风格' },
+]
+
+export default function SVGGeneratorPage() {
   const [prompt, setPrompt] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null)
+  const [generatedSVG, setGeneratedSVG] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [selectedSize, setSelectedSize] = useState('1920x1080')
-  const [selectedStyle, setSelectedStyle] = useState('modern_minimal')
+  const [selectedStyle, setSelectedStyle] = useState('minimal')
+  const [color, setColor] = useState('#6366f1')
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return
@@ -30,24 +37,21 @@ export default function ImageGeneratorPage() {
     setIsGenerating(true)
     setError(null)
     try {
-      const [width, height] = selectedSize.split('x').map(Number)
-
-      const response = await apiService.generateImage({
+      const response = await apiService.generateSVG({
         prompt: prompt.trim(),
-        width,
-        height,
         style: selectedStyle,
-        num_inference_steps: 30,
-        guidance_scale: 7.5,
+        color_palette: [color],
+        width: 512,
+        height: 512,
       })
 
-      if (response.success && response.image_base64) {
-        setGeneratedImage(`data:image/png;base64,${response.image_base64}`)
+      if (response.success && response.svg_code) {
+        setGeneratedSVG(response.svg_code)
       } else {
         throw new Error('生成失败')
       }
     } catch (error) {
-      console.error('生成失败:', error)
+      console.error('SVG生成失败:', error)
       setError(error instanceof Error ? error.message : '生成失败，请重试')
     } finally {
       setIsGenerating(false)
@@ -59,11 +63,19 @@ export default function ImageGeneratorPage() {
   }
 
   const handleDownload = () => {
-    if (!generatedImage) return
+    if (!generatedSVG) return
+    const blob = new Blob([generatedSVG], { type: 'image/svg+xml' })
+    const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
-    link.href = generatedImage
-    link.download = `ai-generated-${Date.now()}.png`
+    link.href = url
+    link.download = `ai-generated-svg-${Date.now()}.svg`
     link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleCopy = () => {
+    if (!generatedSVG) return
+    navigator.clipboard.writeText(generatedSVG)
   }
 
   return (
@@ -76,13 +88,14 @@ export default function ImageGeneratorPage() {
             返回首页
           </Button>
         </Link>
+
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            图像生成器
+            SVG 生成器
           </h1>
           <p className="text-muted-foreground mt-2">
-            使用AI生成高质量的网页图像素材
+            使用AI生成可缩放的矢量图形
           </p>
         </div>
 
@@ -93,7 +106,7 @@ export default function ImageGeneratorPage() {
               <CardHeader>
                 <CardTitle>输入描述</CardTitle>
                 <CardDescription>
-                  描述您想要生成的图像
+                  描述您想要生成的SVG图形
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -104,7 +117,7 @@ export default function ImageGeneratorPage() {
                   <textarea
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="例如: 现代科技风格hero banner,渐变背景,抽象几何图形..."
+                    placeholder="例如: 现代简约logo图标,几何形状,扁平化设计..."
                     className="w-full h-32 px-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring resize-none"
                   />
                 </div>
@@ -114,7 +127,7 @@ export default function ImageGeneratorPage() {
                     快捷预设
                   </label>
                   <div className="grid grid-cols-2 gap-2">
-                    {presets.map((preset) => (
+                    {svgPresets.map((preset) => (
                       <Button
                         key={preset.name}
                         variant="outline"
@@ -134,32 +147,16 @@ export default function ImageGeneratorPage() {
                   variant="gradient"
                   className="w-full"
                 >
-                  {isGenerating ? '生成中...' : '生成图像'}
+                  {isGenerating ? '生成中...' : '生成SVG'}
                 </Button>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>生成设置</CardTitle>
+                <CardTitle>样式设置</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    图像尺寸
-                  </label>
-                  <select
-                    value={selectedSize}
-                    onChange={(e) => setSelectedSize(e.target.value)}
-                    className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background"
-                  >
-                    <option value="1920x1080">1920 x 1080 (16:9)</option>
-                    <option value="1280x720">1280 x 720 (16:9)</option>
-                    <option value="1080x1080">1080 x 1080 (1:1)</option>
-                    <option value="800x600">800 x 600 (4:3)</option>
-                  </select>
-                </div>
-
                 <div>
                   <label className="text-sm font-medium mb-2 block">
                     风格
@@ -169,12 +166,27 @@ export default function ImageGeneratorPage() {
                     onChange={(e) => setSelectedStyle(e.target.value)}
                     className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background"
                   >
-                    <option value="modern_minimal">现代简约</option>
-                    <option value="tech_cyber">科技感</option>
-                    <option value="elegant_fancy">优雅精致</option>
-                    <option value="playful_vibrant">活泼活泼</option>
-                    <option value="nature_organic">自然有机</option>
+                    {styles.map((style) => (
+                      <option key={style.id} value={style.id}>
+                        {style.name}
+                      </option>
+                    ))}
                   </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    主色调
+                  </label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="color"
+                      value={color}
+                      onChange={(e) => setColor(e.target.value)}
+                      className="w-10 h-10 rounded border cursor-pointer"
+                    />
+                    <span className="text-sm text-muted-foreground">{color}</span>
+                  </div>
                 </div>
 
                 {error && (
@@ -194,13 +206,13 @@ export default function ImageGeneratorPage() {
                   <div>
                     <CardTitle>生成预览</CardTitle>
                     <CardDescription>
-                      生成的图像将显示在这里
+                      生成的SVG将显示在这里
                     </CardDescription>
                   </div>
-                  {generatedImage && (
+                  {generatedSVG && (
                     <div className="flex gap-2">
-                      <Badge variant="secondary">1920x1080</Badge>
-                      <Badge variant="outline">PNG</Badge>
+                      <Badge variant="secondary">SVG</Badge>
+                      <Badge variant="outline">矢量图形</Badge>
                     </div>
                   )}
                 </div>
@@ -215,19 +227,21 @@ export default function ImageGeneratorPage() {
                         <Skeleton className="h-4 w-32" />
                       </div>
                     </div>
-                  ) : generatedImage ? (
+                  ) : generatedSVG ? (
                     <div className="w-full h-full flex flex-col items-center justify-center space-y-4">
-                      <img
-                        src={generatedImage}
-                        alt="Generated"
-                        className="max-w-full max-h-full object-contain rounded-lg"
+                      <div
+                        dangerouslySetInnerHTML={{ __html: generatedSVG }}
+                        className="max-w-full max-h-full"
                       />
                       <div className="flex gap-2">
                         <Button onClick={handleDownload} variant="outline" size="sm">
-                          下载
+                          下载SVG
+                        </Button>
+                        <Button onClick={handleCopy} variant="outline" size="sm">
+                          复制代码
                         </Button>
                         <Button
-                          onClick={() => setGeneratedImage(null)}
+                          onClick={() => setGeneratedSVG(null)}
                           variant="outline"
                           size="sm"
                         >
@@ -237,18 +251,29 @@ export default function ImageGeneratorPage() {
                     </div>
                   ) : (
                     <div className="text-center space-y-4">
-                      <div className="text-6xl opacity-50">🖼️</div>
+                      <div className="text-6xl opacity-50">📐</div>
                       <div>
                         <p className="text-sm text-muted-foreground mb-2">
                           在左侧输入描述并点击生成
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          支持多种风格和尺寸
+                          生成的SVG可无限缩放，适用于任何尺寸
                         </p>
                       </div>
                     </div>
                   )}
                 </div>
+
+                {generatedSVG && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium mb-2">SVG 代码</h4>
+                    <div className="bg-muted p-3 rounded-md">
+                      <pre className="text-xs overflow-x-auto">
+                        {generatedSVG}
+                      </pre>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

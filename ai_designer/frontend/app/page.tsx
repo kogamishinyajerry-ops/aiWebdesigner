@@ -23,12 +23,16 @@ export default function HomePage() {
           </p>
           
           <div className="flex gap-4 justify-center">
-            <Button size="lg" variant="gradient" className="text-lg">
-              <Rocket className="w-5 h-5 mr-2" />
-              开始创作
+            <Button size="lg" variant="gradient" className="text-lg" asChild>
+              <a href="/dashboard">
+                <Rocket className="w-5 h-5 mr-2" />
+                开始创作
+              </a>
             </Button>
-            <Button size="lg" variant="outline">
-              了解更多
+            <Button size="lg" variant="outline" asChild>
+              <a href="/generator/image">
+                尝试图像生成
+              </a>
             </Button>
           </div>
         </div>
@@ -71,15 +75,17 @@ export default function HomePage() {
             </CardHeader>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <Sparkles className="w-12 h-12 text-primary mb-4" />
-              <CardTitle>美学引擎</CardTitle>
-              <CardDescription>
-                风格识别、色彩推荐、布局优化、审美评分
-              </CardDescription>
-            </CardHeader>
-          </Card>
+          <a href="/generator/aesthetic" className="block">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <CardHeader>
+                <Sparkles className="w-12 h-12 text-primary mb-4" />
+                <CardTitle>美学设计</CardTitle>
+                <CardDescription>
+                  参考艺术巨匠风格，生成极致美感的前端设计方案
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </a>
         </div>
       </section>
 
@@ -130,23 +136,37 @@ export default function HomePage() {
 
       {/* CTA Section */}
       <section className="container px-4 py-20 mx-auto">
-        <Card className="max-w-2xl mx-auto border-2 border-primary/20">
+        <Card className="max-w-3xl mx-auto border-2 border-primary/20">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl mb-4">
               <Zap className="w-8 h-8 inline-block mr-2" />
-              立即开始
+              立即开始创作
             </CardTitle>
             <CardDescription className="text-base">
-              开发中...预计4周后发布MVP版本
+              所有核心功能已就绪，开始您的 AI 设计之旅
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center gap-4">
-            <Button size="lg">
-              查看开发计划
-            </Button>
-            <Button size="lg" variant="outline">
-              GitHub
-            </Button>
+          <CardContent>
+            <div className="grid md:grid-cols-3 gap-4">
+              <Button size="lg" className="h-auto py-4" asChild>
+                <a href="/generator/image">
+                  <Image className="w-5 h-5 mr-2" />
+                  图像生成
+                </a>
+              </Button>
+              <Button size="lg" className="h-auto py-4" variant="outline" asChild>
+                <a href="/generator/svg">
+                  <Palette className="w-5 h-5 mr-2" />
+                  SVG生成
+                </a>
+              </Button>
+              <Button size="lg" className="h-auto py-4" variant="outline" asChild>
+                <a href="/generator/code">
+                  <Code2 className="w-5 h-5 mr-2" />
+                  代码生成
+                </a>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </section>

@@ -2,7 +2,7 @@
 
 import { Navbar } from './navbar'
 import { Sidebar } from './sidebar'
-import { cn } from '@/lib/utils'
+import { cn } from '../../lib/utils'
 
 interface AppLayoutProps {
   children: React.ReactNode

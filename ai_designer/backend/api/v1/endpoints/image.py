@@ -3,7 +3,7 @@ Image Generation Endpoints
 """
 
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import Field
+from pydantic import BaseModel, Field
 from typing import Optional
 import uuid
 import base64
@@ -35,11 +35,11 @@ async def generate_image(request: ImageGenerationRequest, http_request: Request)
         # Generate image using service
         result = image_service.generate_hero_banner(
             prompt=request.prompt,
-            style=request.style,
-            size=request.size,
+            style=request.style.value if request.style else "modern_minimal",
+            size=f"{request.width}x{request.height}",
             negative_prompt=request.negative_prompt,
             guidance_scale=request.guidance_scale,
-            num_inference_steps=request.num_steps,
+            num_inference_steps=request.num_inference_steps,
             seed=request.seed
         )
 
@@ -53,6 +53,7 @@ async def generate_image(request: ImageGenerationRequest, http_request: Request)
         return ImageGenerationResponse(
             success=True,
             image_url=f"data:image/png;base64,{image_base64}",
+            image_base64=image_base64,
             generation_id=str(uuid.uuid4()),
             generation_time=generation_time,
             prompt=request.prompt,
@@ -68,12 +69,16 @@ async def generate_image(request: ImageGenerationRequest, http_request: Request)
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class IconGenerationRequest(BaseModel):
+    concept: str = Field(..., description="Icon concept (e.g., navigation, social)")
+    style: str = Field(default="outline", description="Icon style")
+    count: int = Field(default=4, ge=1, le=10, description="Number of icons")
+    size: str = Field(default="icon", description="Icon size preset")
+
+
 @router.post("/icons")
 async def generate_icons(
-    concept: str = Field(..., description="Icon concept (e.g., navigation, social)"),
-    style: str = Field(default="outline", description="Icon style"),
-    count: int = Field(default=4, ge=1, le=10, description="Number of icons"),
-    size: str = Field(default="icon", description="Icon size preset"),
+    request: IconGenerationRequest,
     http_request: Request = None
 ):
     """
@@ -83,14 +88,14 @@ async def generate_icons(
         request_id = getattr(http_request.state, "request_id", "unknown")
         start_time = datetime.now()
 
-        logger.info(f"[{request_id}] Generating {count} icons for: {concept}")
+        logger.info(f"[{request_id}] Generating {request.count} icons for: {request.concept}")
 
         # Generate icons
         icons = image_service.generate_icon(
-            concept=concept,
-            style=style,
-            count=count,
-            size=size
+            concept=request.concept,
+            style=request.style,
+            count=request.count,
+            size=request.size
         )
 
         generation_time = (datetime.now() - start_time).total_seconds()
@@ -123,12 +128,16 @@ async def generate_icons(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class BackgroundGenerationRequest(BaseModel):
+    style: str = Field(default="gradient", description="Background style")
+    colors: Optional[str] = Field(None, description="Comma-separated colors")
+    complexity: str = Field(default="medium", description="Complexity level")
+    size: str = Field(default="hero_medium", description="Size preset")
+
+
 @router.post("/background")
 async def generate_background(
-    style: str = Field(default="gradient", description="Background style"),
-    colors: Optional[str] = Field(None, description="Comma-separated colors"),
-    complexity: str = Field(default="medium", description="Complexity level"),
-    size: str = Field(default="hero_medium", description="Size preset"),
+    request: BackgroundGenerationRequest,
     http_request: Request = None
 ):
     """
@@ -138,16 +147,16 @@ async def generate_background(
         request_id = getattr(http_request.state, "request_id", "unknown")
         start_time = datetime.now()
 
-        color_list = colors.split(",") if colors else None
+        color_list = request.colors.split(",") if request.colors else None
 
-        logger.info(f"[{request_id}] Generating {style} background")
+        logger.info(f"[{request_id}] Generating {request.style} background")
 
         # Generate background
         result = image_service.generate_background(
-            style=style,
+            style=request.style,
             colors=color_list,
-            complexity=complexity,
-            size=size
+            complexity=request.complexity,
+            size=request.size
         )
 
         generation_time = (datetime.now() - start_time).total_seconds()

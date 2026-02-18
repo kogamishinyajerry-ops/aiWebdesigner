@@ -2,7 +2,7 @@
 SVG generation schemas
 """
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Dict
 from enum import Enum
 
@@ -71,19 +71,19 @@ class SVGGenerationRequest(BaseModel):
     primary_color: Optional[str] = Field(
         None,
         description="主色 (hex格式)",
-        regex=r'^#[0-9A-Fa-f]{6}$'
+        json_schema_extra={"pattern": r'^#[0-9A-Fa-f]{6}$'}
     )
 
     secondary_color: Optional[str] = Field(
         None,
         description="副色 (hex格式)",
-        regex=r'^#[0-9A-Fa-f]{6}$'
+        json_schema_extra={"pattern": r'^#[0-9A-Fa-f]{6}$'}
     )
 
     background_color: Optional[str] = Field(
         None,
         description="背景色 (hex格式)",
-        regex=r'^#[0-9A-Fa-f]{6}$'
+        json_schema_extra={"pattern": r'^#[0-9A-Fa-f]{6}$'}
     )
 
     animate: Optional[bool] = Field(
@@ -91,13 +91,15 @@ class SVGGenerationRequest(BaseModel):
         description="是否添加动画"
     )
 
-    @validator('primary_color', 'secondary_color', 'background_color')
-    def validate_color(cls, v, values):
+    @field_validator('primary_color', 'secondary_color', 'background_color')
+    @classmethod
+    def validate_color(cls, v):
         if v and not v.startswith('#'):
             raise ValueError('Color must start with #')
         return v
 
-    @validator('width', 'height')
+    @field_validator('width', 'height')
+    @classmethod
     def validate_dimensions(cls, v):
         if v < 64 or v > 1024:
             raise ValueError('Dimensions must be between 64 and 1024')
